@@ -143,12 +143,38 @@ def trivia_audio():
     button{background:#49324c;color:#fff;border:1px solid #ff9dca;border-radius:9px;padding:10px 16px;cursor:pointer}
     #music{margin-top:12px}p{color:#d1c5e5;margin:8px 0}</style>
     <button id="sound">Enable answer pops</button>
-    <p>Music: press play below. Keep sound on the host screen only.</p>
-    <div id="music"><iframe width="100%" height="170" title="Trivia music from YouTube"
-      src="https://www.youtube.com/embed/8YGlzSl6cxU?playsinline=1&loop=1&playlist=8YGlzSl6cxU"
+    <p>Press play once to enable music. Questions loop the opening; results play 0:20–0:22.</p>
+    <div id="music"><iframe id="music-player" width="100%" height="170" title="Trivia music from YouTube"
+      src="https://www.youtube.com/embed/DjtvI2s8E0M?playsinline=1&enablejsapi=1"
       allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
     <script>
     let audio,enabled=false,lastKey=null,lastCount=0;
+    let player,ready=false,started=false,musicMode='idle',observed=null,applied=null;
+    window.onYouTubeIframeAPIReady=()=>{
+      player=new YT.Player('music-player',{
+        events:{onReady:()=>{ready=true;},onStateChange:e=>{
+          if(e.data===YT.PlayerState.PLAYING&&!started){started=true;applied=null;}
+        }}
+      });
+    };
+    const api=document.createElement('script');api.src='https://www.youtube.com/iframe_api';document.head.appendChild(api);
+    function syncMusic(key,phase){
+      observed={key,phase};
+      if(!ready||!started)return;
+      const signature=key+':'+phase;
+      if(signature!==applied){
+        applied=signature;
+        if(phase==='open'){
+          musicMode='question';player.seekTo(0,true);player.playVideo();
+        }else if(phase==='reveal'||phase==='finished'){
+          musicMode='ending';player.seekTo(20,true);player.playVideo();
+        }else{musicMode='idle';player.pauseVideo();}
+      }
+      const t=player.getCurrentTime();
+      if(musicMode==='question'&&t>=19.9)player.seekTo(0,true);
+      if(musicMode==='ending'&&t>=22){player.pauseVideo();musicMode='done';}
+    }
+
     const toggle=document.getElementById('sound');
     toggle.onclick=async()=>{
       audio=audio||new (window.AudioContext||window.webkitAudioContext)();
@@ -167,6 +193,7 @@ def trivia_audio():
       let marker;try{marker=parent.document.querySelector('[data-trivia-counter]')}catch(e){return}
       if(!marker)return;
       const key=marker.dataset.round,count=Number(marker.dataset.count),phase=marker.dataset.phase;
+      syncMusic(key,phase);
       if(key===lastKey&&count>lastCount&&phase==='open'&&enabled&&audio?.state==='running'){
         for(let i=0;i<count-lastCount;i++)pop(i*.09);
       }
@@ -191,6 +218,8 @@ def trivia_ui(host,name,connect,rows,execute):
     @st.fragment(run_every='1s')
     def live():
         s=state(rows)
+        count=rows('SELECT COUNT(*) AS n FROM trivia_votes WHERE game=? AND question=?',(s['game'],s['question']))[0]['n']
+        st.html(f'<span data-trivia-counter data-round="{s["game"]}_{s["question"]}" data-count="{count}" data-phase="{s["phase"]}" style="display:none"></span>')
         remaining=max(0,math.ceil(s['deadline']-time.time()))
         if s['phase']=='open' and remaining==0:
             execute("UPDATE trivia_state SET phase='reveal', deadline=? WHERE id=1 AND game=? AND question=? AND phase='open'",(time.time()+10,s['game'],s['question']))
@@ -214,9 +243,8 @@ def trivia_ui(host,name,connect,rows,execute):
             st.caption(f'QUESTION {idx+1} / {len(TRIVIA)}'+(' · DOUBLE POINTS' if idx==len(TRIVIA)-1 else ''))
             st.subheader(question)
             if s['phase']=='open':st.metric('Time remaining',f'{remaining}s')
-        count=rows('SELECT COUNT(*) AS n FROM trivia_votes WHERE game=? AND question=?',(s['game'],idx))[0]['n']
         total=rows('SELECT COUNT(*) AS n FROM players')[0]['n']
-        st.html(f'<div data-trivia-counter data-round="{s["game"]}_{idx}" data-count="{count}" data-phase="{s["phase"]}" style="text-align:center;font-size:20px;font-weight:700;color:#f5f3f7;margin:8px 0 22px" aria-live="polite">{count} / {total} answered</div>')
+        st.html(f'<div style="text-align:center;font-size:20px;font-weight:700;color:#f5f3f7;margin:8px 0 22px" aria-live="polite">{count} / {total} answered</div>')
         votes=rows('SELECT answer,points FROM trivia_votes WHERE game=? AND question=? AND name=?',(s['game'],idx,name)) if not host else []
         if s['phase']=='open':
             tiles=st.columns(2,gap='medium')
