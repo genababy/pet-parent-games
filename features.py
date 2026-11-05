@@ -9,6 +9,7 @@ import time
 import pandas as pd
 import qrcode
 import streamlit as st
+import streamlit.components.v1 as components
 
 PUBLIC_URL = os.getenv('PET_GAME_PUBLIC_URL', 'https://pet-parent-games-genababy.streamlit.app')
 from matching import match_ui
@@ -134,8 +135,52 @@ def winner_confetti(game):
     </style><div class="winner-confetti" aria-hidden="true">"""+pieces+'</div>')
 
 
+def trivia_audio():
+    # This iframe stays mounted while the one-second question fragment updates.
+    # Audio starts only after a host click; players never mount this component.
+    components.html("""
+    <style>body{margin:0;background:#211b30;color:#f5f3f7;font:14px system-ui}
+    button{background:#49324c;color:#fff;border:1px solid #ff9dca;border-radius:9px;padding:10px 16px;cursor:pointer}
+    #music{margin-top:12px}p{color:#d1c5e5;margin:8px 0}</style>
+    <button id="sound">Enable answer pops</button>
+    <p>Music: press play below. Keep sound on the host screen only.</p>
+    <div id="music"><iframe width="100%" height="170" title="Trivia music from YouTube"
+      src="https://www.youtube.com/embed/8YGlzSl6cxU?playsinline=1&loop=1&playlist=8YGlzSl6cxU"
+      allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+    <script>
+    let audio,enabled=false,lastKey=null,lastCount=0;
+    const toggle=document.getElementById('sound');
+    toggle.onclick=async()=>{
+      audio=audio||new (window.AudioContext||window.webkitAudioContext)();
+      await audio.resume();enabled=!enabled;
+      toggle.textContent=enabled?'Answer pops on · mute':'Enable answer pops';
+    };
+    function pop(delay){
+      const t=audio.currentTime+delay,o=audio.createOscillator(),g=audio.createGain();
+      o.type='sine';o.frequency.setValueAtTime(800,t);o.frequency.exponentialRampToValueAtTime(230,t+.09);
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.22,t+.006);
+      g.gain.exponentialRampToValueAtTime(.0001,t+.11);o.connect(g);g.connect(audio.destination);
+      o.start(t);o.stop(t+.12);
+    }
+    // Read the counter rendered by Streamlit; never request or change game data.
+    setInterval(()=>{
+      let marker;try{marker=parent.document.querySelector('[data-trivia-counter]')}catch(e){return}
+      if(!marker)return;
+      const key=marker.dataset.round,count=Number(marker.dataset.count),phase=marker.dataset.phase;
+      if(key===lastKey&&count>lastCount&&phase==='open'&&enabled&&audio?.state==='running'){
+        for(let i=0;i<count-lastCount;i++)pop(i*.09);
+      }
+      lastKey=key;lastCount=count;toggle.title=count+' answers received';
+    },150);
+    </script>
+    """,height=285)
+
+
 def trivia_ui(host,name,connect,rows,execute):
     s=state(rows)
+    if host:
+        with st.expander('Music & answer sounds',expanded=False):
+            trivia_audio()
     if s['phase']=='waiting':
         st.subheader('Pet Trivia')
         st.write('10 questions. Four choices. One winner.')
@@ -169,6 +214,9 @@ def trivia_ui(host,name,connect,rows,execute):
             st.caption(f'QUESTION {idx+1} / {len(TRIVIA)}'+(' · DOUBLE POINTS' if idx==len(TRIVIA)-1 else ''))
             st.subheader(question)
             if s['phase']=='open':st.metric('Time remaining',f'{remaining}s')
+        count=rows('SELECT COUNT(*) AS n FROM trivia_votes WHERE game=? AND question=?',(s['game'],idx))[0]['n']
+        total=rows('SELECT COUNT(*) AS n FROM players')[0]['n']
+        st.html(f'<div data-trivia-counter data-round="{s["game"]}_{idx}" data-count="{count}" data-phase="{s["phase"]}" style="text-align:center;font-size:20px;font-weight:700;color:#f5f3f7;margin:8px 0 22px" aria-live="polite">{count} / {total} answered</div>')
         votes=rows('SELECT answer,points FROM trivia_votes WHERE game=? AND question=? AND name=?',(s['game'],idx,name)) if not host else []
         if s['phase']=='open':
             tiles=st.columns(2,gap='medium')
@@ -177,9 +225,7 @@ def trivia_ui(host,name,connect,rows,execute):
                     if st.button(f'{ICONS[i]} {chr(65+i)} · {option}',key=f'answer_{["paw","bone","fish","feather"][i]}_{s["game"]}_{idx}',disabled=host or bool(votes),use_container_width=True):
                         if not vote(connect,name,s,i):st.warning('This round closed or your answer is already locked.')
                         st.rerun()
-            count=rows('SELECT COUNT(*) AS n FROM trivia_votes WHERE game=? AND question=?',(s['game'],idx))[0]['n']
             if votes:st.success('Answer locked in')
-            elif host:st.caption(f'{count} answers received')
             if host and st.button('Skip timer'):
                 execute("UPDATE trivia_state SET phase='reveal', deadline=? WHERE id=1 AND game=? AND question=? AND phase='open'",(time.time()+10,s['game'],idx));st.rerun()
         elif s['phase']=='reveal':
