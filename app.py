@@ -44,7 +44,7 @@ button[data-testid="stBaseButton-primary"] p {color:#211321;}
 .st-key-trivia_question h3 {text-align:center;font-size:2.1rem!important;line-height:1.3!important;margin:12px 0 22px!important;}
 .st-key-trivia_question [data-testid="stCaptionContainer"] {color:#d1c5e5;letter-spacing:2px;font-size:.8rem;}
 .st-key-trivia_question [data-testid="stMetric"] {background:#49324c;border:2px solid #ff9dca;border-radius:50%;width:94px;height:94px;margin:0 auto;padding:14px 8px;display:flex;align-items:center;justify-content:center;flex-direction:column;}
-.st-key-trivia_question [data-testid="stMetricLabel"] {font-size:11px;}
+.st-key-trivia_question [data-testid="stMetricLabel"] {display:none;}
 .st-key-trivia_question [data-testid="stMetricValue"] {font-size:30px;font-weight:800;}
 [class*="st-key-answer_"] button {min-height:132px;white-space:normal;color:#f5f3f7;border:1px solid #76618b;border-bottom:5px solid #76618b;border-radius:16px;background:#332b43;padding:24px;transition:transform .12s;}
 [class*="st-key-answer_"] button p {font-size:1.2rem;font-weight:750;color:#f5f3f7;line-height:1.4;}
