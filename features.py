@@ -229,7 +229,7 @@ def trivia_ui(host,name,connect,rows,execute):
     @st.fragment(run_every='1s')
     def live():
         s=state(rows)
-        count=rows('SELECT COUNT(*) AS n FROM trivia_votes WHERE game=? AND question=?',(s['game'],s['question']))[0]['n']
+        count=rows('SELECT COUNT(*) AS n FROM trivia_votes v JOIN players p ON p.name=v.name COLLATE NOCASE WHERE v.game=? AND v.question=?',(s['game'],s['question']))[0]['n']
         st.html(f'<span data-trivia-counter data-round="{s["game"]}_{s["question"]}" data-count="{count}" data-phase="{s["phase"]}" style="display:none"></span>')
         remaining=max(0,math.ceil(s['deadline']-time.time()))
         if s['phase']=='open' and remaining==0:
@@ -255,7 +255,7 @@ def trivia_ui(host,name,connect,rows,execute):
             st.subheader(question)
             if s['phase']=='open':st.metric('Time remaining',f'{remaining}s')
         total=rows('SELECT COUNT(*) AS n FROM players')[0]['n']
-        st.html(f'<div style="text-align:center;font-size:20px;font-weight:700;color:#f5f3f7;margin:8px 0 22px" aria-live="polite">{count} / {total} answered</div>')
+        st.html(f'<div style="text-align:center;font-size:20px;font-weight:700;color:#f5f3f7;margin:8px 0 22px" aria-live="polite">{count} of {total} players answered</div>')
         votes=rows('SELECT answer,points FROM trivia_votes WHERE game=? AND question=? AND name=?',(s['game'],idx,name)) if not host else []
         if s['phase']=='open':
             tiles=st.columns(2,gap='medium')
