@@ -39,11 +39,23 @@ button[data-testid="stBaseButton-primaryFormSubmit"] {
 }
 button[data-testid="stBaseButton-primaryFormSubmit"] p,
 button[data-testid="stBaseButton-primary"] p {color:#211321;}
-[class*="st-key-answer_"] button {min-height:110px;white-space:normal;color:#f5f3f7;font-weight:700;border-width:1px;border-radius:12px;background:#262633;}
-[class*="st-key-answer_paw_"] button {background:#262633;border-color:#ff9dca;}
-[class*="st-key-answer_bone_"] button {background:#262633;border-color:#75dce0;}
-[class*="st-key-answer_fish_"] button {background:#262633;border-color:#b6bfff;}
-[class*="st-key-answer_feather_"] button {background:#262633;border-color:#f3cc73;}
+/* Trivia cards share the podium's purple surface and pink accents. */
+.st-key-trivia_question {background:#211b30;border:1px solid #49415c;border-radius:22px;padding:28px 32px;margin:4px 0 22px;text-align:center;}
+.st-key-trivia_question h3 {text-align:center;font-size:2.1rem!important;line-height:1.3!important;margin:12px 0 22px!important;}
+.st-key-trivia_question [data-testid="stCaptionContainer"] {color:#d1c5e5;letter-spacing:2px;font-size:.8rem;}
+.st-key-trivia_question [data-testid="stMetric"] {background:#49324c;border:2px solid #ff9dca;border-radius:50%;width:94px;height:94px;margin:0 auto;padding:14px 8px;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.st-key-trivia_question [data-testid="stMetricLabel"] {font-size:11px;}
+.st-key-trivia_question [data-testid="stMetricValue"] {font-size:30px;font-weight:800;}
+[class*="st-key-answer_"] button {min-height:132px;white-space:normal;color:#f5f3f7;border:1px solid #76618b;border-bottom:5px solid #76618b;border-radius:16px;background:#332b43;padding:24px;transition:transform .12s;}
+[class*="st-key-answer_"] button p {font-size:1.2rem;font-weight:750;color:#f5f3f7;line-height:1.4;}
+[class*="st-key-answer_paw_"] button {background:#3a2b48;border-color:#c584ab;}
+[class*="st-key-answer_bone_"] button {background:#302b45;border-color:#9d8bb7;}
+[class*="st-key-answer_fish_"] button {background:#3b3048;border-color:#b49cbe;}
+[class*="st-key-answer_feather_"] button {background:#312f48;border-color:#9990bc;}
+[class*="st-key-answer_"] button:hover:not(:disabled) {transform:translateY(-2px);border-color:#ff9dca;}
+[class*="st-key-answer_"] button:disabled,[class*="st-key-answer_"] button:disabled p {opacity:1;color:#f5f3f7;}
+@media(max-width:550px) {.st-key-trivia_question{padding:22px 16px}.st-key-trivia_question h3{font-size:1.6rem!important}[class*="st-key-answer_"] button{padding:16px;min-height:110px}[class*="st-key-answer_"] button p{font-size:1.05rem;}}
+@media(prefers-reduced-motion:reduce) {[class*="st-key-answer_"] button{transition:none}[class*="st-key-answer_"] button:hover:not(:disabled){transform:none}}
 button:focus-visible, input:focus-visible {outline:3px solid #ff9dca;outline-offset:2px;}
 </style>""", unsafe_allow_html=True)
 

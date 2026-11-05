@@ -165,11 +165,12 @@ def trivia_ui(host,name,connect,rows,execute):
                 start_question(connect,0,s['game']+1);st.rerun()
             return
         idx=s['question']; question,options,correct,explanation=TRIVIA[idx]
-        st.caption(f'QUESTION {idx+1} / {len(TRIVIA)}'+(' · DOUBLE POINTS' if idx==len(TRIVIA)-1 else ''))
-        st.subheader(question)
+        with st.container(key='trivia_question'):
+            st.caption(f'QUESTION {idx+1} / {len(TRIVIA)}'+(' · DOUBLE POINTS' if idx==len(TRIVIA)-1 else ''))
+            st.subheader(question)
+            if s['phase']=='open':st.metric('Time remaining',f'{remaining}s')
         votes=rows('SELECT answer,points FROM trivia_votes WHERE game=? AND question=? AND name=?',(s['game'],idx,name)) if not host else []
         if s['phase']=='open':
-            st.metric('Time remaining',f'{remaining}s')
             tiles=st.columns(2,gap='medium')
             for i,option in enumerate(options):
                 with tiles[i%2]:
