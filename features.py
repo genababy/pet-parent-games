@@ -142,8 +142,9 @@ def trivia_audio():
     <style>body{margin:0;background:#211b30;color:#f5f3f7;font:14px system-ui}
     button{background:#49324c;color:#fff;border:1px solid #ff9dca;border-radius:9px;padding:10px 16px;cursor:pointer}
     #music{margin-top:12px}p{color:#d1c5e5;margin:8px 0}</style>
-    <button id="sound">Enable answer pops</button>
-    <p>Press play once to enable music. Questions loop the opening; results play 0:20–0:22.</p>
+    <button id="sound">Enable game audio</button> <button id="test">Test sound</button>
+    <p>One click enables music and answer pops. Music plays while waiting and during questions.</p>
+    <p id="audio-status" role="status">Audio is off.</p>
     <div id="music"><iframe id="music-player" width="100%" height="170" title="Trivia music from YouTube"
       src="https://www.youtube.com/embed/DjtvI2s8E0M?playsinline=1&enablejsapi=1"
       allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
@@ -152,7 +153,7 @@ def trivia_audio():
     let player,ready=false,started=false,musicMode='idle',observed=null,applied=null;
     window.onYouTubeIframeAPIReady=()=>{
       player=new YT.Player('music-player',{
-        events:{onReady:()=>{ready=true;},onStateChange:e=>{
+        events:{onReady:()=>{ready=true;},onError:()=>{document.getElementById('audio-status').textContent='YouTube music could not load. Test sound checks answer pops.';},onStateChange:e=>{
           if(e.data===YT.PlayerState.PLAYING&&!started){started=true;applied=null;}
         }}
       });
@@ -164,7 +165,7 @@ def trivia_audio():
       const signature=key+':'+phase;
       if(signature!==applied){
         applied=signature;
-        if(phase==='open'){
+        if(phase==='open'||phase==='waiting'){
           musicMode='question';player.seekTo(0,true);player.playVideo();
         }else if(phase==='reveal'||phase==='finished'){
           musicMode='ending';player.seekTo(20,true);player.playVideo();
@@ -176,10 +177,20 @@ def trivia_audio():
     }
 
     const toggle=document.getElementById('sound');
-    toggle.onclick=async()=>{
+    toggle.onclick=()=>{
       audio=audio||new (window.AudioContext||window.webkitAudioContext)();
-      await audio.resume();enabled=!enabled;
-      toggle.textContent=enabled?'Answer pops on · mute':'Enable answer pops';
+      audio.resume();enabled=!enabled;started=enabled;applied=null;
+      toggle.textContent=enabled?'Game audio on · mute':'Enable game audio';
+      document.getElementById('audio-status').textContent=enabled?'Music and answer pops are on.':'Audio is off.';
+      if(enabled){
+        if(ready){player.unMute();player.setVolume(65);player.playVideo();}
+        audio.resume().then(()=>pop(0));
+      }else if(ready){player.pauseVideo();}
+    };
+    document.getElementById('test').onclick=()=>{
+      audio=audio||new (window.AudioContext||window.webkitAudioContext)();
+      audio.resume().then(()=>{pop(0);pop(.18);});
+      document.getElementById('audio-status').textContent='Playing two test pops. If silent, check your speaker volume and whether this tab is muted.';
     };
     function pop(delay){
       const t=audio.currentTime+delay,o=audio.createOscillator(),g=audio.createGain();
@@ -200,7 +211,7 @@ def trivia_audio():
       lastKey=key;lastCount=count;toggle.title=count+' answers received';
     },150);
     </script>
-    """,height=285)
+    """,height=345)
 
 
 def trivia_ui(host,name,connect,rows,execute):
